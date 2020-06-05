@@ -1,10 +1,13 @@
-# reflex-template
+# go-reflex
 An experimental library for building reactive templates for web applications inspired by Vue.
 
 ## Goals
 The goal of this project is to try to allow for building frontend code in Go similarily to how you would in a frontend
 framework like [Vue](https://vuejs.org), i.e. responding to data changes and events automatically.
 
+* Build dynamic and reactive web pages without having to write any javascript
+* Use standard library http handle so it can be used with any library that works with the go http package
+* Use standard `html/template` without requiring any special syntax
 
 ## Overview
 When a user connects to an endpoint, we'll create a websocket connection.  The template and any template changes (diffs)
@@ -23,3 +26,14 @@ So to summarize:
 **No** for high performance ui applications.  
 **Yes** for for *"I need a web ui in my Go project and don't 
 want to install NPM"*.
+
+
+## Tasks
+- [ ] Websocket connection
+- [ ] Inject JS client?
+- [ ] Client side template and event handling
+  - [ ] `preventDefault()` and `stopPropogation()` options
+- [ ] Server Event Handling (look at https://godoc.org/honnef.co/go/js/dom#BasicEvent for a template)
+- [ ] Template Diffing (https://github.com/sergi/go-diff)
+- [ ] Reactive Data
+- [ ] Computed Properties
