@@ -27,13 +27,41 @@ So to summarize:
 **Yes** for for *"I need a web ui in my Go project and don't 
 want to install NPM"*.
 
+## Preliminary API Example
 
-## Tasks
-- [ ] Websocket connection
-- [ ] Inject JS client?
-- [ ] Client side template and event handling
-  - [ ] `preventDefault()` and `stopPropogation()` options
-- [ ] Server Event Handling (look at https://godoc.org/honnef.co/go/js/dom#BasicEvent for a template)
-- [ ] Template Diffing (https://github.com/sergi/go-diff)
-- [ ] Reactive Data
-- [ ] Computed Properties
+`index.template.html`
+```html
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Example</title>
+    </head>
+    <body>
+        <button onclick="{{increment 2}}" class="btn btn-primary">
+            Count is: {{ .Count }}
+        </button>
+        {{client}} <!-- inject js client -->
+    </body>
+</html>
+```
+
+`Go Code`
+```go
+http.Handle("/", reflex.ParseFiles("index.template.html").Setup(func() *reflex.Page {
+		data := struct {
+			Count int
+		}{
+			Count: 0,
+		}
+
+		return &reflex.Page{
+			Data: data,
+			Events: reflex.EventFuncs{
+				"increment": func(i int) {
+					data.Count += i
+				},
+			},
+		}
+	}))
+
+```
