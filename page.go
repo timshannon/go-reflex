@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"html/template"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -30,21 +31,28 @@ type Event struct {
 type SetupFunc func() *Page
 
 type Template struct {
-	text    string
-	files   []string
-	pattern string
+	text string
 }
 
 func Parse(text string) *Template {
 	return &Template{text: text}
 }
 
-func ParseFiles(files ...string) *Template {
-	return &Template{files: files}
+func ParseFile(file string) (*Template, error) {
+	b, err := ioutil.ReadFile(file)
+
+	if err != nil {
+		return nil, err
+	}
+	return &Template{text: string(b)}, nil
 }
 
-func ParseGlob(pattern string) *Template {
-	return &Template{pattern: pattern}
+func Must(t *Template, err error) *Template {
+	if err != nil {
+		panic(err)
+	}
+
+	return t
 }
 
 func (t *Template) Setup(setup SetupFunc) http.Handler {
@@ -53,12 +61,14 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 	pg := setup()
 
 	funcs := map[string]interface{}{
-		"client": func() template.JS {
-			return template.JS(`<script type="text/javascript">var reflex = {
+		"client": func() template.HTML {
+			return template.HTML(`<script type="text/javascript">
+				var reflex = {
 					event: function(name) {
 						console.log("Event: ", name);
 					},
-				};</script>`)
+				};
+			</script>`)
 		},
 	}
 
@@ -68,15 +78,7 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 		}
 	}
 
-	tmpl := template.New("reflex-template").Funcs(funcs)
-
-	if t.files != nil {
-		tmpl = template.Must(tmpl.ParseFiles(t.files...))
-	} else if t.pattern != "" {
-		tmpl = template.Must(tmpl.ParseGlob(t.pattern))
-	} else if t.text != "" {
-		tmpl = template.Must(tmpl.Parse(t.text))
-	}
+	tmpl := template.Must(template.New("reflex-template").Funcs(funcs).Parse(t.text))
 
 	return &page{
 		Page:     pg,

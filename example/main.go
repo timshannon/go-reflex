@@ -15,7 +15,7 @@ func main() {
 		Addr: ":8080",
 	}
 
-	http.Handle("/", reflex.ParseFiles("index.template.html").Setup(func() *reflex.Page {
+	http.Handle("/", reflex.Must(reflex.ParseFile("index.template.html")).Setup(func() *reflex.Page {
 		data := struct {
 			Count int
 		}{
