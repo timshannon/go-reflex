@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflex/client"
 )
 
 type Page struct {
@@ -62,13 +63,7 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 
 	funcs := map[string]interface{}{
 		"client": func() template.HTML {
-			return template.HTML(`<script type="text/javascript">
-				var reflex = {
-					event: function(name) {
-						console.log("Event: ", name);
-					},
-				};
-			</script>`)
+			return template.HTML(client.Inject)
 		},
 	}
 

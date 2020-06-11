@@ -14,4 +14,8 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# built example app 
 example
+
+# JS client
+client/node_modules

@@ -1,0 +1,26 @@
+{
+  "name": "reflex-client",
+  "version": "1.0.0",
+  "description": "Injected Javascript client for go reflex templates",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rollup -c rollup.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/timshannon/go-reflex.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/timshannon/go-reflex/issues"
+  },
+  "homepage": "https://github.com/timshannon/go-reflex#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^4.1.2",
+    "rollup": "^2.15.0",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.5"
+  }
+}
