@@ -11,6 +11,7 @@ export class Socket {
     constructor(private readonly url: string, public retryPollDuration: number = 5000) { }
 
     public socketAddress(): string {
+        console.log(this.url);
         return this.url.replace("http://", "ws://").replace("https://", "wss://");
     }
 

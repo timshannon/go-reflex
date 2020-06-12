@@ -4,14 +4,17 @@
 
 import { Socket } from "./socket";
 
-let socket: Socket | null;
 
-export default {
+const reflex = {
+    socket: new Socket(window.location.toString()),
     async connect() {
-        socket = new Socket(window.Location.toString());
-        await socket.connect()
+        await this.socket.connect()
     },
     event(name: string) {
         console.log("Event: ", name);
     }
 };
+
+reflex.connect();
+
+export default reflex;

@@ -67,6 +67,7 @@ var reflex = (function () {
             this.manualClose = false;
         }
         Socket.prototype.socketAddress = function () {
+            console.log(this.url);
             return this.url.replace("http://", "ws://").replace("https://", "wss://");
         };
         Socket.prototype.connect = function () {
@@ -164,15 +165,13 @@ var reflex = (function () {
     }());
 
     // Copyright 2020 Tim Shannon. All rights reserved.
-    var socket;
-    var index = {
+    var reflex = {
+        socket: new Socket(window.location.toString()),
         connect: function () {
             return __awaiter(this, void 0, void 0, function () {
                 return __generator(this, function (_a) {
                     switch (_a.label) {
-                        case 0:
-                            socket = new Socket(window.Location.toString());
-                            return [4 /*yield*/, socket.connect()];
+                        case 0: return [4 /*yield*/, this.socket.connect()];
                         case 1:
                             _a.sent();
                             return [2 /*return*/];
@@ -184,8 +183,9 @@ var reflex = (function () {
             console.log("Event: ", name);
         }
     };
+    reflex.connect();
 
-    return index;
+    return reflex;
 
 }());
 </script>`

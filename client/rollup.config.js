@@ -13,6 +13,6 @@ export default {
     },
     plugins: [
         typescript(),
-        // terser(),
+        // terser(),  // FIXME: Currently runs after banner and footer are added and breaks
     ]
 };
