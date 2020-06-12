@@ -1,6 +1,6 @@
 // rollup.config.js
 import typescript from "@rollup/plugin-typescript";
-import reflex from "./src/rollup-go-plugin";
+// import { terser } from "rollup-plugin-terser";
 
 export default {
     input: "src/index.ts",
@@ -8,9 +8,11 @@ export default {
         name: "reflex",
         format: "iife",
         file: "client.go",
+        banner: `package client\n\nconst Inject = \`<script type="text/javascript">`,
+        footer: `</script>\``,
     },
     plugins: [
         typescript(),
-        reflex(),
+        // terser(),
     ]
 };
