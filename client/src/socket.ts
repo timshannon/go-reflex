@@ -11,7 +11,6 @@ export class Socket {
     constructor(private readonly url: string, public retryPollDuration: number = 5000) { }
 
     public socketAddress(): string {
-        console.log(this.url);
         return this.url.replace("http://", "ws://").replace("https://", "wss://");
     }
 
@@ -22,15 +21,12 @@ export class Socket {
             this.connection = new WebSocket(url);
             this.connection.onopen = (): void => {
                 this.manualClose = false;
-                // this.connection!.onmessage = this.onmessage;
                 this.connection!.onmessage = (ev: MessageEvent): any => {
                     if (this.onmessage) {
                         this.onmessage(ev);
                     }
                 };
                 this.connection!.onerror = (event): void => {
-                    // eslint-disable-next-line no-console
-                    console.log("Web Socket error, retrying: ", event);
                     this.retry();
                 };
                 // will always retry closed connections until a message is sent from the server to
@@ -78,8 +74,6 @@ export class Socket {
             try {
                 await this.connect();
             } catch (err) {
-                // eslint-disable-next-line no-console
-                console.log("Web Socket Errored, retrying: ", err);
                 this.retry();
             }
         }, this.retryPollDuration);

@@ -15,7 +15,7 @@
 # vendor/
 
 # built example app 
-example
+examples/basic/basic
 
 # JS client
 client/node_modules

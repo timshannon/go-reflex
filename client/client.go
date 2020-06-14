@@ -67,7 +67,6 @@ var reflex = (function () {
             this.manualClose = false;
         }
         Socket.prototype.socketAddress = function () {
-            console.log(this.url);
             return this.url.replace("http://", "ws://").replace("https://", "wss://");
         };
         Socket.prototype.connect = function () {
@@ -80,15 +79,12 @@ var reflex = (function () {
                             _this.connection = new WebSocket(url);
                             _this.connection.onopen = function () {
                                 _this.manualClose = false;
-                                // this.connection!.onmessage = this.onmessage;
                                 _this.connection.onmessage = function (ev) {
                                     if (_this.onmessage) {
                                         _this.onmessage(ev);
                                     }
                                 };
                                 _this.connection.onerror = function (event) {
-                                    // eslint-disable-next-line no-console
-                                    console.log("Web Socket error, retrying: ", event);
                                     _this.retry();
                                 };
                                 // will always retry closed connections until a message is sent from the server to
@@ -152,8 +148,6 @@ var reflex = (function () {
                             return [3 /*break*/, 3];
                         case 2:
                             err_1 = _a.sent();
-                            // eslint-disable-next-line no-console
-                            console.log("Web Socket Errored, retrying: ", err_1);
                             this.retry();
                             return [3 /*break*/, 3];
                         case 3: return [2 /*return*/];
@@ -162,6 +156,29 @@ var reflex = (function () {
             }); }, this.retryPollDuration);
         };
         return Socket;
+    }());
+
+    // Copyright 2020 Tim Shannon. All rights reserved.
+    // Use of this source code is governed by the MIT license
+    // that can be found in the LICENSE file.
+    // fields need to match up with event.go
+    var GoEvent = /** @class */ (function () {
+        function GoEvent(e) {
+            this.type = e.type;
+            this.altKey = e.altKey;
+            this.button = e.button;
+            this.buttons = e.buttons;
+            this.clientX = e.clientX;
+            this.clientY = e.clientY;
+            this.ctrlKey = e.ctrlKey;
+            this.metaKey = e.metaKey;
+            this.movementX = e.movementX;
+            this.movementY = e.movementY;
+            this.screenX = e.screenX;
+            this.screenY = e.screenY;
+            this.shiftKey = e.shiftKey;
+        }
+        return GoEvent;
     }());
 
     // Copyright 2020 Tim Shannon. All rights reserved.
@@ -174,14 +191,18 @@ var reflex = (function () {
                         case 0: return [4 /*yield*/, this.socket.connect()];
                         case 1:
                             _a.sent();
+                            this.socket.onmessage = this.onmessage;
                             return [2 /*return*/];
                     }
                 });
             });
         },
-        event: function (name) {
-            console.log("Event: ", name);
-        }
+        event: function (event, name) {
+            this.socket.send({ name: name, event: new GoEvent(event) });
+        },
+        onmessage: function (ev) {
+            console.log(ev);
+        },
     };
     reflex.connect();
 

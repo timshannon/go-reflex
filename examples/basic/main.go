@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"reflex"
@@ -25,8 +26,9 @@ func main() {
 		return &reflex.Page{
 			Data: data,
 			Events: reflex.EventFuncs{
-				"increment": func(i int) {
-					data.Count += i
+				"increment": func(e reflex.Event) {
+					fmt.Println("event: ", e)
+					data.Count++
 				},
 			},
 		}
