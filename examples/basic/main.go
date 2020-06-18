@@ -16,11 +16,7 @@ func main() {
 	}
 
 	http.Handle("/", reflex.Must(reflex.ParseFile("index.template.html")).Setup(func() *reflex.Page {
-		data := &struct {
-			Count int
-		}{
-			Count: 0,
-		}
+		data := &myData{}
 
 		return &reflex.Page{
 			ElementID: "app",
@@ -36,4 +32,13 @@ func main() {
 	err := server.ListenAndServe()
 
 	log.Fatalf("Error Starting server: %s", err)
+}
+
+type myData struct {
+	Count int
+}
+
+// Double example of how you'd handle a "computed" property
+func (m *myData) Double() int {
+	return m.Count * 2
 }

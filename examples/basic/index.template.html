@@ -8,10 +8,12 @@
 			integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
 	</head>
 	<body>
-		<div id="app">
+		<div id="app" class="container">
+			<h1>Example App</h1>
 			<button onclick="{{increment}}" class="btn btn-primary">
 				Count is: {{ .Count }}
 			</button>
+			<p>Double is {{.Double}}</p>
 		</div>
 		{{client}} <!-- injected js client -->
 	</body>
