@@ -4,11 +4,15 @@
 
 package reflex
 
+import "reflect"
+
 // Event is a DOM event optionally available as a parameter to EventFuncs
 type Event struct {
 	Type string
 	MouseEvent
 }
+
+var eventType = reflect.TypeOf(Event{})
 
 // MouseEvent is the base structure from a DOM mouse event
 type MouseEvent struct {

@@ -11,8 +11,13 @@
 		<div id="app" class="container">
 			<h1>Example App</h1>
 			<button onclick="{{increment}}" class="btn btn-primary">
-				Count is: {{ .Count }}
+				Add 1
 			</button>
+			<button onclick="{{incrementBy .IncAmount}}" class="btn btn-primary">
+				Add 3
+			</button>
+
+			<p>Count is: {{ .Count }}</p>
 			<p>Double is {{.Double}}</p>
 		</div>
 		{{client}} <!-- injected js client -->

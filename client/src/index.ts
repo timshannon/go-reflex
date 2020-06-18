@@ -12,8 +12,8 @@ const reflex = {
         await this.socket.connect()
         this.socket.onmessage = this.onmessage;
     },
-    event(event: Event, name: string) {
-        this.socket.send({ name, event: new GoEvent(event) });
+    event(event: Event, name: string, args?: any) {
+        this.socket.send({ name, event: new GoEvent(event), args });
     },
     onmessage(ev: MessageEvent) {
         // first message is page data

@@ -198,8 +198,8 @@ var reflex = (function () {
                 });
             });
         },
-        event: function (event, name) {
-            this.socket.send({ name: name, event: new GoEvent(event) });
+        event: function (event, name, args) {
+            this.socket.send({ name: name, event: new GoEvent(event), args: args });
         },
         onmessage: function (ev) {
             // first message is page data

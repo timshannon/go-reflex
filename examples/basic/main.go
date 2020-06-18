@@ -22,8 +22,11 @@ func main() {
 			ElementID: "app",
 			Data:      data,
 			Events: reflex.EventFuncs{
-				"increment": func(r *http.Request) {
+				"increment": func() {
 					data.Count++
+				},
+				"incrementBy": func(amount int) {
+					data.Count += amount
 				},
 			},
 		}
@@ -41,4 +44,8 @@ type myData struct {
 // Double example of how you'd handle a "computed" property
 func (m *myData) Double() int {
 	return m.Count * 2
+}
+
+func (m *myData) IncAmount() int {
+	return 3
 }

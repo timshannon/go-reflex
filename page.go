@@ -6,6 +6,7 @@ package reflex
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -37,6 +38,8 @@ func defaultErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 
 // EventFuncs can have Event, *http.Request, or websocket.Conn parameters
 type EventFuncs map[string]interface{}
+
+var requestType = reflect.TypeOf(&http.Request{})
 
 // SetupFunc is the function that builds and returns the Page elements for use with the reflex template
 type SetupFunc func() *Page
@@ -90,9 +93,26 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 	}
 
 	for name := range pg.Events {
-		funcs[name] = func() template.JS {
-			// TODO: Event arguments
-			return template.JS(`reflex.event(event, '` + name + `');`)
+		eventName := name
+		funcs[eventName] = func(in ...interface{}) (template.JS, error) {
+			js := "reflex.event(event, '" + eventName + "'"
+			if len(in) > 0 {
+				args := make([]interface{}, 0, len(in))
+				for i := range in {
+					argType := reflect.TypeOf(in[i])
+					if argType != eventType && argType != requestType {
+						args = append(args, in[i])
+					}
+
+				}
+				param, err := json.Marshal(args)
+				if err != nil {
+					return "", err
+				}
+				js += "," + string(param)
+			}
+			js += ");"
+			return template.JS(js), nil
 		}
 	}
 
@@ -105,30 +125,29 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 }
 
 type handler struct {
-	setup    SetupFunc // TODO:
+	setup    SetupFunc
 	template *template.Template
 }
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if websocket.IsWebSocketUpgrade(r) {
-		h.handleWebsocket(w, r)
-		return
-	}
-	h.handleTemplate(w, r)
-}
-
-type eventCall struct {
-	Name  string
-	Args  []reflect.Value
-	Event Event
-}
-
-func (h *handler) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 	p := h.setup()
 	if p.ErrorHandler == nil {
 		p.ErrorHandler = defaultErrorHandler
 	}
+	if websocket.IsWebSocketUpgrade(r) {
+		h.handleWebsocket(p, w, r)
+		return
+	}
+	h.handleTemplate(p, w, r)
+}
 
+type eventCall struct {
+	Name  string        `json:"name"`
+	Args  []interface{} `json:"args"`
+	Event Event         `json:"event"`
+}
+
+func (h *handler) handleWebsocket(p *Page, w http.ResponseWriter, r *http.Request) {
 	ws, err := p.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		p.ErrorHandler(w, r, err)
@@ -169,14 +188,26 @@ func (h *handler) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 
 		args := make([]reflect.Value, 0, fnType.NumIn())
 		for i := 0; i < cap(args); i++ {
-			if fnType.In(i) == reflect.TypeOf(e.Event) {
+			inType := fnType.In(i)
+			if inType == eventType {
 				args = append(args, reflect.ValueOf(e.Event))
-			} else if fnType.In(i) == reflect.TypeOf(r) {
+			} else if inType == requestType {
 				args = append(args, reflect.ValueOf(r))
+			} else {
+				for j := range e.Args {
+					val := reflect.ValueOf(e.Args[j])
+					if val.Type() == inType {
+						args = append(args, val)
+						e.Args = append(e.Args[:j], e.Args[j+1:]...)
+						break
+					} else if val.Type().ConvertibleTo(inType) {
+						args = append(args, val.Convert(inType))
+						e.Args = append(e.Args[:j], e.Args[j+1:]...)
+						break
+					}
+				}
 			}
 		}
-
-		args = append(args, e.Args...)
 
 		out := fnVal.Call(args)
 		if len(out) > 0 {
@@ -214,8 +245,7 @@ func (h *handler) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *handler) handleTemplate(w http.ResponseWriter, r *http.Request) {
-	p := h.setup()
+func (h *handler) handleTemplate(p *Page, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var b bytes.Buffer
 	err := h.template.Execute(&b, p.Data)
