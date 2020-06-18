@@ -6,6 +6,7 @@ package reflex
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
@@ -15,12 +16,14 @@ import (
 	"reflex/client"
 
 	"github.com/gorilla/websocket"
+	"golang.org/x/net/html"
 )
 
 // Page defines the Data and events used to run the reflex Template
 // if Upgrader is not set, defaults to buffer sizes of 512
 // if ErrorHandler is not set, defaults to http.Error 500 and logs error to stdout
 type Page struct {
+	ElementID    string
 	Events       EventFuncs
 	Data         interface{}
 	Upgrader     websocket.Upgrader
@@ -69,11 +72,15 @@ func Must(t *Template, err error) *Template {
 
 // Setup sets up the reflex template for use as a standard http.Handler
 func (t *Template) Setup(setup SetupFunc) http.Handler {
-	// compare sending entire new template vs diff w/ https://github.com/sergi/go-diff
 
 	pg := setup()
-	if pg.ErrorHandler == nil {
-		pg.ErrorHandler = defaultErrorHandler
+
+	if reflect.TypeOf(pg.Data).Kind() != reflect.Ptr {
+		panic("Page Data must be a pointer")
+	}
+
+	if pg.ElementID == "" {
+		panic("Element ID must be set")
 	}
 
 	funcs := map[string]interface{}{
@@ -91,23 +98,23 @@ func (t *Template) Setup(setup SetupFunc) http.Handler {
 
 	tmpl := template.Must(template.New("reflex-template").Funcs(funcs).Parse(t.text))
 
-	return &page{
-		Page:     pg,
+	return &handler{
+		setup:    setup,
 		template: tmpl,
 	}
 }
 
-type page struct {
-	*Page
+type handler struct {
+	setup    SetupFunc // TODO:
 	template *template.Template
 }
 
-func (p *page) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if websocket.IsWebSocketUpgrade(r) {
-		p.handleWebsocket(w, r)
+		h.handleWebsocket(w, r)
 		return
 	}
-	p.handleTemplate(w, r)
+	h.handleTemplate(w, r)
 }
 
 type eventCall struct {
@@ -116,7 +123,12 @@ type eventCall struct {
 	Event Event
 }
 
-func (p *page) handleWebsocket(w http.ResponseWriter, r *http.Request) {
+func (h *handler) handleWebsocket(w http.ResponseWriter, r *http.Request) {
+	p := h.setup()
+	if p.ErrorHandler == nil {
+		p.ErrorHandler = defaultErrorHandler
+	}
+
 	ws, err := p.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		p.ErrorHandler(w, r, err)
@@ -127,12 +139,23 @@ func (p *page) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		ws.Close()
 	}()
 
+	// send inital page data
+	ws.WriteJSON(struct {
+		ElementID string `json:"elementID"`
+	}{
+		ElementID: p.ElementID,
+	})
+
 	for {
 		e := &eventCall{}
 		err = websocket.ReadJSON(ws, e)
 		if err != nil {
+			if err == websocket.ErrCloseSent {
+				return
+			}
 			// TODO: Handle websocket disconnects
 			// preserve template state and try to reconnect?
+			// send a UUID on first connect, and if reconnect with same UUID load template state from memory?
 			p.ErrorHandler(w, r, err)
 			return
 		}
@@ -163,18 +186,39 @@ func (p *page) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		// TODO: ignore all other returns?
+		// TODO: ignore all other func returns? Error?
 
 		var b bytes.Buffer
-		p.template.Execute(&b, p.Data)
-		ws.WriteJSON(b.String())
+		h.template.Execute(&b, p.Data)
+		doc, err := html.Parse(&b)
+		if err != nil {
+			p.ErrorHandler(w, r, err)
+			return
+		}
+
+		b.Reset()
+
+		el := findElement(p.ElementID, doc)
+		if el == nil {
+			p.ErrorHandler(w, r, fmt.Errorf("No element found with an id of %s in the template", p.ElementID))
+			return
+		}
+
+		err = html.Render(&b, el)
+		if err != nil {
+			p.ErrorHandler(w, r, err)
+			return
+		}
+
+		ws.WriteMessage(websocket.TextMessage, b.Bytes())
 	}
 }
 
-func (p *page) handleTemplate(w http.ResponseWriter, r *http.Request) {
+func (h *handler) handleTemplate(w http.ResponseWriter, r *http.Request) {
+	p := h.setup()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var b bytes.Buffer
-	err := p.template.Execute(&b, p.Data)
+	err := h.template.Execute(&b, p.Data)
 
 	if err != nil {
 		p.ErrorHandler(w, r, err)
@@ -185,4 +229,22 @@ func (p *page) handleTemplate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error Copying template data to template writer: %s", err)
 	}
+}
+
+func findElement(id string, parent *html.Node) *html.Node {
+	for c := parent.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type == html.ElementNode && len(c.Attr) > 0 {
+			for i := range c.Attr {
+				if c.Attr[i].Key == "id" && c.Attr[i].Val == id {
+					return c
+				}
+			}
+		}
+
+		el := findElement(id, c)
+		if el != nil {
+			return el
+		}
+	}
+	return nil
 }

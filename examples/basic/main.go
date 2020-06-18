@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"reflex"
@@ -17,17 +16,17 @@ func main() {
 	}
 
 	http.Handle("/", reflex.Must(reflex.ParseFile("index.template.html")).Setup(func() *reflex.Page {
-		data := struct {
+		data := &struct {
 			Count int
 		}{
 			Count: 0,
 		}
 
 		return &reflex.Page{
-			Data: data,
+			ElementID: "app",
+			Data:      data,
 			Events: reflex.EventFuncs{
-				"increment": func(e reflex.Event) {
-					fmt.Println("event: ", e)
+				"increment": func(r *http.Request) {
 					data.Count++
 				},
 			},

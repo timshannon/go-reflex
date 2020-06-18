@@ -5,9 +5,9 @@
 import { Socket } from "./socket";
 import { GoEvent } from "./event";
 
-
 const reflex = {
     socket: new Socket(window.location.toString()),
+    elementID: "",
     async connect() {
         await this.socket.connect()
         this.socket.onmessage = this.onmessage;
@@ -16,7 +16,16 @@ const reflex = {
         this.socket.send({ name, event: new GoEvent(event) });
     },
     onmessage(ev: MessageEvent) {
-        console.log(ev);
+        // first message is page data
+        if (!this.elementID) {
+            this.elementID = JSON.parse(ev.data).elementID;
+            return;
+        }
+
+        const el = document.getElementById(this.elementID);
+        if (el) {
+            el.innerHTML = ev.data;
+        }
     },
 };
 

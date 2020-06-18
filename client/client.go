@@ -184,6 +184,7 @@ var reflex = (function () {
     // Copyright 2020 Tim Shannon. All rights reserved.
     var reflex = {
         socket: new Socket(window.location.toString()),
+        elementID: "",
         connect: function () {
             return __awaiter(this, void 0, void 0, function () {
                 return __generator(this, function (_a) {
@@ -201,7 +202,15 @@ var reflex = (function () {
             this.socket.send({ name: name, event: new GoEvent(event) });
         },
         onmessage: function (ev) {
-            console.log(ev);
+            // first message is page data
+            if (!this.elementID) {
+                this.elementID = JSON.parse(ev.data).elementID;
+                return;
+            }
+            var el = document.getElementById(this.elementID);
+            if (el) {
+                el.innerHTML = ev.data;
+            }
         },
     };
     reflex.connect();
